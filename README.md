@@ -25,3 +25,4 @@ For experiment you need the experimental difference signal, time bins and q rang
 - Just edit the file names to loop over for each optimisation run.
 - Inspect the optimisation visually using the FLAGplot option.
 - `generate_comparison_signals.m` can be used to generate equally weighted reference signals w specific gaussian widths and xfracs
+- `plot_T0.m` can be used to plot the fits of the rise in intensity around T0 against experiment
