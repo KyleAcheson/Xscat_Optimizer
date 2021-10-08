@@ -54,7 +54,10 @@ FLAGconfmat = 1; % Include a confidence matrix that assigns a measure of confide
 FLAGexclude = 0; % 1 = exclude certain number trajectories from opt - specified in ex_traj, 0 = exclude none.
 Npar = 1; % number of processors to run using. 1 = serial execution 
 DEBUG = 0; % 1 for debugging info
-FLAG_T0 = 1; % 0 = perform global fit, 1 = perform independent T0 fit
+FLAG_T0 = 0; % 0 = perform global fit, 1 = perform independent T0 fit
+FLAG_wtype = 1; % how initial weights are generated. 0 = N random weights on interval [0, 1]
+                % 1 = N random weights on interval [mean_weight-weight_variation, mean_weight+weight_variation]
+                % 2 = N weights generated on a harmonic function w some force constant k
 
 %%%%% INPUT PARAMS %%%%% EDIT BEFORE RUNNING
 
@@ -72,12 +75,13 @@ Tlen = 1000; % max time in fs to fit over
 q_range = [1, 12]; % q range to use for fitting
 qlims = [2.8 4.2]; % limits for integration if fitting T0
 ex_traj = [14 20 36 93 96 98 100 137 176 197]; % trajectory numbers to exclude from opt
-ninit_conds = 10; % number of initial guess conditions for coefficients
+ninit_conds = 3; % number of initial guess conditions for coefficients
+weight_std = 0.3; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
 
 %%%%% PATHS TO EXPERIMENTAL AND THEORETICAL DATA %%%%% EDIT BEFORE RUNNING
 
-fpath_exp = 'FixedExperimental.mat'; % path to experimental data
-fpath_traj = 'Filtered_Trajs_Final.mat'; % path to theory data
+fpath_exp = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/MeV_UED/Experiment/FixedExperimental.mat'; % path to experimental data
+fpath_traj = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/Xopt_Analysis/Filtered_Trajs_Final.mat'; % path to theory data
 fname = 'TEST_OPTIMISATION'; % Prefix of .mat output file data will be saved to.
 
 % Edit these two functions to load relevent data
@@ -120,7 +124,7 @@ for j=1:length(xfrac)
            fit_traj_main3(exfrac, Tshift_exp, T0_theory, Tlen, q_range, Texp, dt, Iexp, q_exp,...
                          Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec,...
                          FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol,...
-                         FLAGexclude, ex_traj, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0);
+                         FLAGexclude, ex_traj, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std);
        end
    end
 end

@@ -1,10 +1,12 @@
-function [I] = lsq_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs)
+function [I] = lsq_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype)
 
 if FLAGexclude == 1
     weights(ex_trajs) = 0;
 end
 
-weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
+if FLAG_wtype == 0
+    weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
+end
 
 if FLAGxfrac == 1
     exfrac = weights(end);

@@ -1,4 +1,4 @@
-function [binned_signal, conv_signal, weight_final, Ff, TE, Ttheory, qAng] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0)
+function [binned_signal, conv_signal, weight_final, Ff, TE, Ttheory, qAng] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std)
 
 % INPUTS:
 % exfrac - excitation fraction in percentage units - either a guess to be optimised or an explicit weight
@@ -298,14 +298,37 @@ disp(['>>>> FITTING TO EXPERIMENTAL DATA. <<<<']);
 if FLAG_T0 == 0 % GLOBAL FITTING
 
     weight_init = [];
+    
+    switch FLAG_wtype
+        case 0
 
-    for i=1:ninit_conds
-        w_add(i, 1:nclass) = rand(1, nclass);
-        w_add(i, 1:nclass) = w_add(i, 1:nclass)/sum(w_add(i, 1:nclass)); % normalize to unity;
-        w_add(i, nclass+1) = exfrac; % include exfrac as additional term
+            for i=1:ninit_conds
+                w_add(i, 1:nclass) = rand(1, nclass);
+                w_add(i, 1:nclass) = w_add(i, 1:nclass)/sum(w_add(i, 1:nclass)); % normalize to unity;
+                w_add(i, nclass+1) = exfrac; % include exfrac as additional term
+            end
+            
+        case 1 % generate a distribution of weights around the mean with some std. dev.
+            
+            mean_weight = 1/nclass; % averaged weights
+            weight_lb = mean_weight - (mean_weight*weight_std);
+            weight_ub = mean_weight + (mean_weight*weight_std);
+            
+            OPT_Bounds(1) = weight_lb; % change bounds according to
+            OPT_Bounds(2) = weight_ub; % calculated bounds using std. dev. given
+            
+            [w_add, ~] = randfixedsum(nclass, ninit_conds, 1, weight_lb, weight_ub);
+            
+            w_add(nclass+1, :) = exfrac;
+            w_add = w_add.';
+            
+        case 2
+            
     end
+                      
 
     weight_init = [weight_init; w_add]; % initial guess weights for opt
+    
 
     OPT_Verbose = 1;  % Verbose printing of output for each step. Change to zero to turn off.
 
@@ -340,13 +363,14 @@ if FLAG_T0 == 0 % GLOBAL FITTING
         case 2
              opt = optimset('lsqnonlin');
              tfunc = 'lsq_tfunc';
-             Aeq (1,1:nclass) = 1; % one of each weight - sum to 1
-             beq = 1; 
+             Aeq (1,1:nclass) = 1; % one of each weight
+             beq = 1;  % sum to one
              lb(1:nclass) = OPT_Bounds(1); % no norm in tfunc 
-             ub(1:nclass) = OPT_Bounds(2);
-                 Aeq(nclass+1) = 0; 
-                 lb(nclass+1) = 0;
-                 ub(nclass+1) = 1; % max exfrac
+             ub(1:nclass) = OPT_Bounds(2); % change to mean +/- std. dev.
+             Aeq(nclass+1) = 0; 
+             lb(nclass+1) = 0;
+             ub(nclass+1) = 1; % max exfrac
+    
     end
 
     opt = optimset(opt,'TolFun',OPT_Tol(1),'TolX',OPT_Tol(2),'DiffMaxChange',OPT_Tol(3),'FunValCheck','on');
@@ -363,12 +387,14 @@ if FLAG_T0 == 0 % GLOBAL FITTING
 
     % lb = [];
     % ub = [];
-    Aeq = []; % HACK: if normalising within target function - Aeq and beq are not needed.
-    beq = []; 
+    if FLAG_wtype == 0
+        Aeq = []; % HACK: if normalising within target function - Aeq and beq are not needed.
+        beq = []; 
+    end
 
     if isempty(Aeq) || isempty(beq) warning('NO LINEAR EQUALITY CONSTRAINTS SET'); end
     if isempty(lb) || isempty(ub) warning('NO BOUNDS ON OPT SET - OK IF TFUNC INCLUDES NORMALISATION'); end
-
+    
     for i=1:ninit_conds
         disp(['Optimize ' num2str(i) '/' num2str(ninit_conds)]);
         switch FLAGopt
@@ -380,11 +406,11 @@ if FLAG_T0 == 0 % GLOBAL FITTING
                 Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
                 Ff(i) = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
             case 2 % lsq
-                [weight_final(i,:), z1, z2, flag] = lsqnonlin(tfunc, weight_init(i,:), lb, ub, opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs);
+                [weight_final(i,:), z1, z2, flag] = lsqnonlin(tfunc, weight_init(i,:), lb, ub, opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
                 weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass));
                 if flag < 0 warning('Optimisation Failed'); end;
-                fi = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs);
-                ff = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs);
+                fi = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
+                ff = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
                 Fi(i) = sum(fi(1:numel(fi)).^2)./Nts;
                 Ff(i) = sum(ff(1:numel(ff)).^2)./Nts;
                 clear fi ff
@@ -392,7 +418,7 @@ if FLAG_T0 == 0 % GLOBAL FITTING
 
         disp(['% INIT FUNC VAL: ', num2str(Fi(i))])
         disp(['% OPT FUNC VAL: ', num2str(Ff(i))])
-
+    
     end
 
 
