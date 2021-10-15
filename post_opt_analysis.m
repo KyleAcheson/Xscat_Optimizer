@@ -16,7 +16,8 @@ for a=1:length(xfrac)
     for b=1:length(init_T)
     iter = iter + 1;
     
-    fpath = [fprefix, '_', num2str(xfrac(a)), '_T0_', num2str(init_T(b)), '.mat'];
+    %fpath = [fprefix, '_', num2str(xfrac(a)), '_T0_', num2str(init_T(b)), '.mat'];
+    fpath = 'OPT_Weights_std_0.7_PULSE_230_xfrac_0.03_T0E_80.mat'
     disp(['>>> LOADING DATA FROM: ', fpath])
     load(fpath)
     
@@ -28,7 +29,7 @@ for a=1:length(xfrac)
     disp('>>>> Analysis of Optimisation <<<<')
 
     if FLAGxfrac == 1
-        for i=1:nadd
+        for i=1:ninit_conds
             if weight_final(i,end) > 100 || weight_final(i,end) < 0.0
                 warning('Xfrac value not within bounds.')
             end
@@ -44,7 +45,7 @@ for a=1:length(xfrac)
 
     c = 0;
     for i=1:nclass
-        if weight_final(best_opt,i) > 0.01
+        if weight_final(best_opt,i) > mean_weight
             c = c + 1;
             important_trajs(c) = i;
             traj_spin(c) = multiplicity(i);
@@ -80,10 +81,11 @@ for a=1:length(xfrac)
     end
     
     disp(['>>> FROM TRAJS WITH WEIGHTS > 1% : '])
-    disp(['Singlet Weight: ', num2str(singlet)])
-    disp(['Triplet Weight: ', num2str(triplet)])
-    disp(['Bound Weight: ', num2str(bound)])
-    disp(['Total: ', num2str(singlet+triplet+bound)])
+    disp(['Singlet Weight: ', num2str(singlet*100)])
+    disp(['Triplet Weight: ', num2str(triplet*100)])
+    disp(['Branching Ratio: ', num2str(triplet/singlet)])
+    disp(['Bound Weight: ', num2str(bound*100)])
+    disp(['Total: ', num2str((singlet+triplet+bound)*100)])
     
     singlet = 0;
     triplet = 0;
@@ -99,10 +101,11 @@ for a=1:length(xfrac)
     end
     
     disp(['>>> FROM ALL TRAJS : '])
-    disp(['Singlet Weight: ', num2str(singlet)])
-    disp(['Triplet Weight: ', num2str(triplet)])
-    disp(['Bound Weight: ', num2str(bound)])
-    disp(['Total: ', num2str(singlet+triplet+bound)])
+    disp(['Singlet Weight: ', num2str(singlet*100)])
+    disp(['Triplet Weight: ', num2str(triplet*100)])
+    disp(['Branching Ratio: ', num2str(triplet/singlet)])
+    disp(['Bound Weight: ', num2str(bound*100)])
+    disp(['Total: ', num2str((singlet+triplet+bound)*100)])
     
     
     theory_fit = zeros(Nq,length(TE));

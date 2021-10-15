@@ -1,5 +1,5 @@
 clear all
-close all
+% close all
 
 FLAGopt = 1; % 0 = use equally weighted trajectories (no opt data), 1 = use outputs from optimisation
 FLAGelec = 1; % 0 = x-ray, 1 = electron
@@ -7,25 +7,37 @@ FLAGinel = 1; % include inelastic corrections
 FLAGsignal = 0; % dI/I = 0, dsM = 1
 FLAGconfmat = 0; % 0 = no conf matrix, 1 = use
 FLAGtdelay = 0; % 0 = no binning (just sample convolved signal), 1 = bin theory data
-FLAGqextend = 1; % 0 = stick to original experimental q vector, 1 = extend q vector to max_q
+FLAGqextend = 0; % 0 = stick to original experimental q vector, 1 = extend q vector to max_q
+
 
 if FLAGopt == 1
     load('Optimised_OUTPUT.mat', 'weights') % file to load weights from if using
 end
 
 xfrac = 0.0338; % excitation fraction
-pulse = 230; % pulse FWHM for convolution
+pulses = [0 50 80 100 150 230]; % pulse FWHM for convolution
 atmnum = [6 16 16]; % atomic numbers
 kin = 1.8751e+03; % kin ued
-max_q = 25;
+max_q = 12;
 dt = 0.5; % time step in theory
 time = 0:dt:1000; % time vec
 T0_exp = 80; % T0 in experiment
 T0 = 0; % T0 in theory
 Confidence_Tol = 0; % confidence tol - 0 = include all
 
-fpath_exp = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/Experimental_Signal/FixedExperimental.mat'; % path to experimental data
-fpath_traj = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/CS2_UED_Corrected/Filtered_Trajs_Final.mat'; % path to theory data
+rsignal = {};
+bsignal = {};
+times = {};
+TEs= {};
+qs = {};
+
+for p=1:length(pulses);
+
+    pulse = pulses(p);
+
+fpath_exp = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/FixedExperimental.mat'; % path to experimental data
+fpath_traj = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/Filtered_Trajs_Final.mat'; % path to theory data
+fout = 'dsMsignals'
 
 [Texp, Iexp, q_exp, CM] = load_experiment(fpath_exp, FLAGconfmat); % need experimental time vec, signal and q range
 [Q, multiplicity] = load_trajectories(fpath_traj); % need geometries and spin of trajectories
@@ -91,22 +103,34 @@ conv_signal = reshape(conv_signal, [1, Nq, Ntc]);
 binned_signal = squeeze(binned_signal);
 conv_signal = squeeze(conv_signal);
 
-figure
-[QQ, TT] = meshgrid(q_exp, tconv);
-mesh(QQ, TT, conv_signal.');
-axis tight
-xlim([0 8]);
-view(0, 90);
-title('All Time')
-ylabel(['Time (fs)'], 'interpreter', 'latex')
-xlabel(['s (\AA', '$ ^{-1} $', ')'], 'interpreter', 'latex')
+%figure
+%[QQ, TT] = meshgrid(q_exp, tconv);
+%mesh(QQ, TT, conv_signal.');
+%axis tight
+%xlim([0 8]);
+%view(0, 90);
+%title('All Time')
+%ylabel(['Time (fs)'], 'interpreter', 'latex')
+%xlabel(['s (\AA', '$ ^{-1} $', ')'], 'interpreter', 'latex')
 
-figure
-[QQ, TT] = meshgrid(q_exp, TE);
-mesh(QQ, TT, binned_signal.');
-axis tight
-xlim([0 8]);
-view(0, 90);
-title('Exp Time Delays')
-ylabel(['Time (fs)'], 'interpreter', 'latex')
-xlabel(['s (\AA', '$ ^{-1} $', ')'], 'interpreter', 'latex')
+% figure
+% [QQ, TT] = meshgrid(q_exp, TE);
+% mesh(QQ, TT, binned_signal.');
+% axis tight
+% xlim([0 8]);
+% view(0, 90);
+% title('Exp Time Delays')
+% ylabel(['Time (fs)'], 'interpreter', 'latex')
+% xlabel(['s (\AA', '$ ^{-1} $', ')'], 'interpreter', 'latex')
+
+%save(fout, '-v7.3')
+
+rsignal{p} = conv_signal;
+bsignal{p} = binned_signal;
+times{p} = tconv;
+TEs{p} = TE;
+qs{p} = q_exp;
+
+clear conv_signal; clear binned_signal; clear tconv; clear TE; clear temp_signal;
+
+end

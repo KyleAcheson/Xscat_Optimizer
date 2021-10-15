@@ -312,6 +312,11 @@ if FLAG_T0 == 0 % GLOBAL FITTING
             
             mean_weight = 1/nclass; % averaged weights
             weight_lb = mean_weight - (mean_weight*weight_std);
+
+            if weight_lb < 0
+                weight_lb = 0;
+            end
+            
             weight_ub = mean_weight + (mean_weight*weight_std);
             
             OPT_Bounds(1) = weight_lb; % change bounds according to

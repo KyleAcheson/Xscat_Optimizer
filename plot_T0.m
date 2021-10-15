@@ -3,8 +3,8 @@ close all
 
 pulses = [230];
 T0s = [80];
-%fpath = '/home/kyle/2TB_HDD/OPTDATA/FixedExperimental.mat';
-fpath = '/media/2TB_HDD/OPTDATA/LOCAL_VER/EXTEND_T0/RESULTS/MANY_NEGATIVE_TIME_DELAY/FINAL_FIXED/OldExperimental.mat';
+fpath = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/FixedExperimental.mat';
+%fpath = '/media/2TB_HDD/OPTDATA/LOCAL_VER/EXTEND_T0/RESULTS/MANY_NEGATIVE_TIME_DELAY/FINAL_FIXED/OldExperimental.mat';
 
 Np = length(pulses);
 Nt0 = length(T0s);
@@ -17,14 +17,14 @@ for rr=1:Nt0
         pulse = pulses(cc);
         pulse = sum(pulse);
         T0 = T0s(rr);
-        file = ['T0FITTING_p', num2str(pulse), '_xfrac_0.03_T0E_', num2str(T0), '_T0T_0.mat']
+        file = ['T0FIT_FIXED_PULSE_', num2str(pulse), '_xfrac_0.03_T0E_', num2str(T0), '_T0T_0.mat']
         load(file); %, 'exfrac_final', 'Ff', 'T0_exp', 'Ith_Integrated', 'binned_signal', 'qAng', 'Ntraj', 'Nts', 'qlb', 'qub', 'Tth_bin', 'Integrated_Iexp');
         
         xfracs(rr,cc) = exfrac_final;
         errf(rr,cc) = Ff;
         dq = qAng(2)-qAng(1);
         
-        [~, Iexp_all, q_exp_all, ~] = load_experiment(fpath, 0, 0);
+        [~, Iexp_all, q_exp_all, ~] = load_experiment(fpath, 0);
                 
         
         Tind = find(TE == T0_exp);
@@ -94,19 +94,37 @@ for rr=1:Nt0
         neg_err = Ith_Integrated - Ith_std;
         inbetween = [neg_err, fliplr(pos_err)];
 
+        lw = 1;
+        ms = 2;
+        pw = 3.65;
+        ph = 2.35;
         
         f = figure;
-        plot(Tth_bin, Ith_Integrated, '-or', 'MarkerFaceColor', 'r')
+        f.PaperUnits = 'inches';
+        f.Units = 'inches';
+        f.PaperPosition = [0 0 pw ph];
+        f.PaperSize = [pw ph];
+        f.OuterPosition = [0 0 pw ph];
+        f.InnerPosition = [0 0 pw ph];
+        
+        
+        plot(Tth_bin, Ith_Integrated, '-or', 'MarkerFaceColor', 'r', 'LineWidth', lw, 'MarkerSize', ms)
         hold on
         fill(x2, inbetween, 'r', 'FaceAlpha', 0.2)
-        plot(Tth_bin, Integrated_Iexp_all, '-ob', 'MarkerFaceColor', 'b')
-        xlabel('Time (fs)')
-        ylabel('Integrated Intensity')
+        plot(Tth_bin, Integrated_Iexp_all, '-ob', 'MarkerFaceColor', 'b', 'LineWidth', lw, 'MarkerSize', ms);
+        ax = gca;
+        ax.FontSize = 6;
+        ax.XAxis.MinorTick = 'on';
+        
+       
+        xlabel('$t$ (fs)', 'interpreter', 'latex', 'FontSize', 10)
+        ylabel('$\%\Delta I^{\mathrm{int}}$', 'interpreter', 'latex', 'FontSize', 10);
+        xline(0, '--k')
         axis tight
-        title(['T0 = ', num2str(T0_exp), ' fs , Pulse Width = ', num2str(sum(pulse)), ' fs'])
-        legend('Theory (averaged)', 'Standard deviation', 'Experiment', 'Location', 'SouthEast')
+        %title(['T0 = ', num2str(T0_exp), ' fs , Pulse Width = ', num2str(sum(pulse)), ' fs'])
+        legend('Theory ($w_i = 1/N_{\mathrm{trj}}$)', 'Std. dev. (theory)', 'Experiment', 'interpreter', 'latex', 'Location', 'NorthWest', 'FontSize', 6)
         pt = ['T0FIXED_TE_', num2str(round(T0_exp)), '_Conv_', num2str(sum(pulse)), '.fig'];
-        %savefig(f, pt)
+        exportgraphics(f, 'T0FIT.pdf', 'BackgroundColor', 'none', 'ContentType', 'vector')
         keyboard
         
         ind = find(Texp_all == T0_exp);
