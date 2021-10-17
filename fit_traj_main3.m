@@ -1,4 +1,4 @@
-function [binned_signal, conv_signal, weight_final, Ff, TE, Ttheory, qAng] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std)
+function [weight_final, weight_init, exfrac_final, Ff, Fi] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std, prev_weights)
 
 % INPUTS:
 % exfrac - excitation fraction in percentage units - either a guess to be optimised or an explicit weight
@@ -323,6 +323,13 @@ if FLAG_T0 == 0 % GLOBAL FITTING
             OPT_Bounds(2) = weight_ub; % calculated bounds using std. dev. given
             
             [w_add, ~] = randfixedsum(nclass, ninit_conds, 1, weight_lb, weight_ub);
+
+            [~, npw] = size(prev_weights);
+
+            if npw > 0
+                w_add = [w_add  prev_weights];
+                ninit_conds = ninit_conds + npw;
+            end
             
             w_add(nclass+1, :) = exfrac;
             w_add = w_add.';
@@ -407,17 +414,19 @@ if FLAG_T0 == 0 % GLOBAL FITTING
                 Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
                 [weight_final(i,:), z1, z2, flag] = fmincon(tfunc, weight_init(i,:), [], [], Aeq, beq, lb, ub, [], opt, binned_signal, Iexp, Nts, nclass, Nq, FLAGxfrac);
                 weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass)); % normalise
-                exfrac_final = weight_final(end); % seperate xfrac if optimising
+                exfrac_final(i) = weight_final(i, end); % seperate xfrac if optimising
                 Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
                 Ff(i) = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
             case 2 % lsq
+               
                 [weight_final(i,:), z1, z2, flag] = lsqnonlin(tfunc, weight_init(i,:), lb, ub, opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
                 weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass));
+                exfrac_final(i) = weight_final(i, end);
                 if flag < 0 warning('Optimisation Failed'); end;
                 fi = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
                 ff = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
-                Fi(i) = sum(fi(1:numel(fi)).^2)./Nts;
-                Ff(i) = sum(ff(1:numel(ff)).^2)./Nts;
+                Fi(i) = sum(fi(1:numel(fi)).^2);
+                Ff(i) = sum(ff(1:numel(ff)).^2);
                 clear fi ff
         end
 
@@ -460,13 +469,15 @@ end
 
 %% 7 - Save fitting parameters 
 
+weight_final = weight_final(:, 1:nclass);
+weight_init = weight_init(:, 1:nclass);
 telapsed = toc(tstart);
 disp(['Time elapsed for ITER   (s):' num2str(telapsed)]);
 disp(['Time elapsed for ITER (min):' num2str(telapsed/60)]);
 disp(['Time elapsed for ITER (hrs):' num2str(telapsed/3600)]);
 
-save(fout, '-v7.3')
-disp(['SAVING DATA TO :', fout]);
+%save(fout, '-v7.3')
+%disp(['SAVING DATA TO :', fout]);
 disp(['-------------------- FINISHED SCAN ITER! --------------------']);
 
 
