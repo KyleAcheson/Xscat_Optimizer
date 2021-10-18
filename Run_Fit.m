@@ -37,7 +37,7 @@ close all
 % Same goes for the form factors - f_functions.m and f_functions_electron.m
 
 
-diary WEIGHT_STD_SCAN.diary %EDIT WITH EACH SUBSEQUENT RUN
+diary WEIGHT_STD_DEBUG.diary %EDIT WITH EACH SUBSEQUENT RUN
 
 
 %%%%% SETUP FLAGS %%%%% EDIT BEFORE RUNNING
@@ -52,7 +52,7 @@ FLAGtfunc = 0; % 0 - individual trajs, 1 - singlet, triplet, non-diss classes, 2
 FLAGxfrac = 1; % Include xfrac in optimisation, must set to a scalar guess in input
 FLAGconfmat = 1; % Include a confidence matrix that assigns a measure of confidence in the data at each point. 1 = Include, 0 = Exclude.
 FLAGexclude = 0; % 1 = exclude certain number trajectories from opt - specified in ex_traj, 0 = exclude none.
-Npar = 5; % number of processors to run using. 1 = serial execution 
+Npar = 1; % number of processors to run using. 1 = serial execution 
 DEBUG = 0; % 1 for debugging info
 FLAG_T0 = 0; % 0 = perform global fit, 1 = perform independent T0 fit
 FLAG_wtype = 1; % how initial weights are generated. 0 = N random weights on interval [0, 1]
@@ -76,13 +76,13 @@ q_range = [1, 12]; % q range to use for fitting
 qlims = [2.8 4.2]; % limits for integration if fitting T0
 ex_traj = [14 20 36 93 96 98 100 137 176 197]; % trajectory numbers to exclude from opt
 ninit_conds = 100; % number of initial guess conditions for coefficients
-weight_std = [0.1 0.25 0.50 0.75 1 2:1:196]; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
+weight_std = [0.75:0.25:1.75 2:.5:9.5 10:2:20 25:5:50 75 100]./100; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
 
 %%%%% PATHS TO EXPERIMENTAL AND THEORETICAL DATA %%%%% EDIT BEFORE RUNNING
 
-fpath_exp = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/FixedExperimental.mat'; % path to experimental data
-fpath_traj = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/Filtered_Trajs_Final.mat'; % path to theory data
-fname = 'WEIGHT_SCAN/OPT_Weights_std'; % Prefix of .mat output file data will be saved to.
+fpath_exp = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/MeV_UED/Experiment/FixedExperimental.mat'; % path to experimental data
+fpath_traj = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/Xopt_Analysis/Filtered_Trajs_Final.mat'; % path to theory data
+fname = 'WEIGHT_SCAN_DEBUG'; % Prefix of .mat output file data will be saved to.
 
 % Edit these two functions to load relevent data
 [Texp, Iexp, q_exp, CM] = load_experiment(fpath_exp, FLAGconfmat); % need experimental time vec, signal and q range
@@ -175,7 +175,7 @@ for j=1:length(xfrac)
            fit_traj_main3(exfrac, Tshift_exp, T0_theory, Tlen, q_range, Texp, dt, Iexp, q_exp,...
                          Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec,...
                          FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol,...
-                         FLAGexclude, ex_traj, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std);
+                         FLAGexclude, ex_traj, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_ub);
        end
    end
 end
