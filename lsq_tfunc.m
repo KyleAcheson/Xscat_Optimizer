@@ -1,12 +1,25 @@
-function [I] = lsq_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype)
+function [I] = lsq_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mw, lb, ub)
 
 if FLAGexclude == 1
     weights(ex_trajs) = 0;
 end
 
-if FLAG_wtype == 0
+% figure
+% plot(weights(1:Ntraj)*100, '-b')
+% hold on
+
+%if FLAG_wtype == 0
     weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
-end
+%end
+
+% plot(weights(1:Ntraj)*100, '-r')
+% yline(mw*100, '-g')
+% yline(lb*100, '-g')
+% yline(ub*100, '-g')
+% 
+% keyboard
+% 
+% close all
 
 if FLAGxfrac == 1
     exfrac = weights(end);

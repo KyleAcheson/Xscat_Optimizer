@@ -1,6 +1,27 @@
-function [I] = fmincon_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, FLAGxfrac);
+function [I] = fmincon_tfunc(weights, Ith, Iexp, Nts, Ntraj, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mw, lb, ub);
 
-weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
+
+
+if FLAGexclude == 1
+    weights(ex_trajs) = 0;
+end
+
+% figure
+% plot(weights(1:Ntraj)*100, '-b')
+% hold on
+
+%if FLAG_wtype == 0
+%    weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
+%end
+
+% plot(weights(1:Ntraj)*100, '-r')
+% yline(mw*100, '-g')
+% yline(lb*100, '-g')
+% yline(ub*100, '-g')
+% 
+% keyboard
+% 
+% close all
 
 if FLAGxfrac == 1
     exfrac = weights(end);
@@ -12,13 +33,37 @@ I = zeros(Nq, Nts);
 
 for ts=1:Nts
     for tr=1:Ntraj
-        A = weights(tr) * exfrac * Ith(tr, 1:Nq, ts);
-        I(1:Nq, ts) = I(1:Nq, ts) + A'; % weights(tr) * Ith(tr, 1:Nq, ts);
+        temp = weights(tr) * Ith(tr, 1:Nq, ts);
+        I(1:Nq, ts) = I(1:Nq, ts) + temp.';
     end
 end
 
+I = I*(exfrac*100);
 I = I - Iexp;
+I = I .* CM;
 I = sum(sum(I.^2));
+
+
+
+% weights(1:Ntraj) = weights(1:Ntraj) / sum(weights(1:Ntraj));
+% 
+% if FLAGxfrac == 1
+%     exfrac = weights(end);
+% else
+%     exfrac = 1;
+% end
+% 
+% I = zeros(Nq, Nts);
+% 
+% for ts=1:Nts
+%     for tr=1:Ntraj
+%         A = weights(tr) * exfrac * Ith(tr, 1:Nq, ts);
+%         I(1:Nq, ts) = I(1:Nq, ts) + A'; % weights(tr) * Ith(tr, 1:Nq, ts);
+%     end
+% end
+% 
+% I = I - Iexp;
+% I = sum(sum(I.^2));
 
 end
 

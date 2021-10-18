@@ -37,7 +37,7 @@ close all
 % Same goes for the form factors - f_functions.m and f_functions_electron.m
 
 
-diary WEIGHT_STD_DEBUG.diary %EDIT WITH EACH SUBSEQUENT RUN
+diary WEIGHT_STD_SCAN.diary %EDIT WITH EACH SUBSEQUENT RUN
 
 
 %%%%% SETUP FLAGS %%%%% EDIT BEFORE RUNNING
@@ -47,12 +47,12 @@ FLAGinel = 1; % 1 - include inelastic terms
 FLAGelec = 1; % 0 for X-ray, 1 for UED.
 FLAGsignal = 0; % 0 = fit with dI/I, 1 = fit using dsM
 FLAGtdelay = 0; % 0 = no binning on theory (delays only), 1 = bin theory
-FLAGopt = 2; % 0 - fmincon (IP), 1 - fmincon (AS), 2 - lsqnonlin
+FLAGopt = 0; % 0 - fmincon (IP), 1 - fmincon (TRF), 2 - lsqnonlin
 FLAGtfunc = 0; % 0 - individual trajs, 1 - singlet, triplet, non-diss classes, 2 - non-diss & diss classes
 FLAGxfrac = 1; % Include xfrac in optimisation, must set to a scalar guess in input
 FLAGconfmat = 1; % Include a confidence matrix that assigns a measure of confidence in the data at each point. 1 = Include, 0 = Exclude.
 FLAGexclude = 0; % 1 = exclude certain number trajectories from opt - specified in ex_traj, 0 = exclude none.
-Npar = 1; % number of processors to run using. 1 = serial execution 
+Npar = 5; % number of processors to run using. 1 = serial execution 
 DEBUG = 0; % 1 for debugging info
 FLAG_T0 = 0; % 0 = perform global fit, 1 = perform independent T0 fit
 FLAG_wtype = 1; % how initial weights are generated. 0 = N random weights on interval [0, 1]
@@ -78,11 +78,12 @@ ex_traj = [14 20 36 93 96 98 100 137 176 197]; % trajectory numbers to exclude f
 ninit_conds = 100; % number of initial guess conditions for coefficients
 weight_std = [0.75:0.25:1.75 2:.5:9.5 10:2:20 25:5:50 75 100]./100; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
 
+
 %%%%% PATHS TO EXPERIMENTAL AND THEORETICAL DATA %%%%% EDIT BEFORE RUNNING
 
 fpath_exp = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/MeV_UED/Experiment/FixedExperimental.mat'; % path to experimental data
 fpath_traj = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/Xopt_Analysis/Filtered_Trajs_Final.mat'; % path to theory data
-fname = 'WEIGHT_SCAN_DEBUG'; % Prefix of .mat output file data will be saved to.
+fname = 'WEIGHT_SCAN'; % Prefix of .mat output file data will be saved to.
 
 % Edit these two functions to load relevent data
 [Texp, Iexp, q_exp, CM] = load_experiment(fpath_exp, FLAGconfmat); % need experimental time vec, signal and q range
@@ -153,7 +154,7 @@ if FLAG_wtype > 0 && length(weight_std) > 1
                 end
                 disp(['--------- END OF OPTIMISATION FOR WEIGHT SPACE ', num2str(k), ' --------------']);
                 disp(['--------- WEIGHT CONVERGENCE BETWEEN ITER ', num2str(k), ' and ITER ', num2str(k-1)]);
-                wdiff
+                wdiff{k}
             end
 
     end

@@ -1,4 +1,4 @@
-function [weight_final, weight_init, exfrac_final, Ff, Fi] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_ub, prev_weights)
+function [weight_final, weight_init, exfrac_final, Ff, Fi] = fit_traj_main3(exfrac, T0_exp, T0, Tlen, q_range, Texp, dt, Iexp, q_exp, Q, multiplicity, pulse, atmnum, kin, fout, FLAGpolar, FLAGinel, FLAGelec, FLAGopt, FLAGtfunc, Npar, OPT_Tol, OPT_Bounds, DEBUG, FLAGxfrac, CM, Confidence_Tol, FLAGexclude, ex_trajs, FLAGsignal, ninit_conds, FLAGtdelay, qlims, FLAG_T0, FLAG_wtype, weight_std, prev_weights)
 
 % INPUTS:
 % exfrac - excitation fraction in percentage units - either a guess to be optimised or an explicit weight
@@ -311,15 +311,15 @@ if FLAG_T0 == 0 % GLOBAL FITTING
         case 1 % generate a distribution of weights around the mean with some std. dev.
             
             mean_weight = 1/nclass; % averaged weights
-            %weight_lb = mean_weight - (mean_weight*weight_std);
+            weight_lb = mean_weight - (mean_weight*weight_std);
 
-            %if weight_lb < 0
-            %    weight_lb = 0;
-            %end
+            if weight_lb < 0
+               weight_lb = 0;
+            end
             
-            weight_lb = 0;
+            %weight_lb = 0;
             
-            %weight_ub = mean_weight + (mean_weight*weight_std);
+            weight_ub = mean_weight + (mean_weight*weight_std);
             
             OPT_Bounds(1) = weight_lb; % change bounds according to
             OPT_Bounds(2) = weight_ub; % calculated bounds using std. dev. given
@@ -334,12 +334,14 @@ if FLAG_T0 == 0 % GLOBAL FITTING
                 ninit_conds = ninit_conds + npw;
             end
             
+            w_add(nclass+1, :) = exfrac;
+            w_add = w_add.';
+         
             
         case 2
             
     end
 
-    weight_init = [];
 
     weight_init = [weight_init; w_add]; % initial guess weights for opt
     
@@ -347,7 +349,8 @@ if FLAG_T0 == 0 % GLOBAL FITTING
     OPT_Verbose = 1;  % Verbose printing of output for each step. Change to zero to turn off.
 
     switch FLAGopt
-        case 0 
+        case 0
+            tfunc = 'fmincon_tfunc';
             opt = optimset('fmincon');
             opt = optimset(opt, 'Algorithm','interior-point');
             Aeq(1,1:nclass) = 1; % one of each weight - should sum to 1
@@ -358,13 +361,14 @@ if FLAG_T0 == 0 % GLOBAL FITTING
             if FLAGxfrac == 1 % add constraints for optimised xfrac
                 Aeq(nclass+1) = 0; % ex.frac not included in norm
                 lb(nclass+1) = 0;
-                ub(nclass+1) = 100; % max percentage for ex.frac
+                ub(nclass+1) = 1; % max percentage for ex.frac
             end
 
-            tfunc = 'fmincon_tfunc';
+           
         case 1
+            tfunc = 'fmincon_tfunc';
             opt = optimset('fmincon');
-            opt = optimset(opt,'Algorithm','active-set');
+            opt = optimset(opt,'Algorithm','trust-region-reflective');
             Aeq (1,1:nclass) = 1; % one of each weight - sum to 1
             beq = 1; 
             lb(1,1:nclass) = OPT_Bounds(1); % remove bounds and ensure normarlised within tfunc
@@ -413,24 +417,29 @@ if FLAG_T0 == 0 % GLOBAL FITTING
         disp(['Optimize ' num2str(i) '/' num2str(ninit_conds)]);
         switch FLAGopt
             case {0, 1} % fmincon
-                Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
-                [weight_final(i,:), z1, z2, flag] = fmincon(tfunc, weight_init(i,:), [], [], Aeq, beq, lb, ub, [], opt, binned_signal, Iexp, Nts, nclass, Nq, FLAGxfrac);
-                weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass)); % normalise
+                Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+                [weight_final(i,:), z1, flag, output] = fmincon(tfunc, weight_init(i,:), [], [], Aeq, beq, lb, ub, [], opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac,  FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+                if flag < 0 warning('Optimisation Failed'); end;
+                %weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass)); % normalise
                 exfrac_final(i) = weight_final(i, end); % seperate xfrac if optimising
-                Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
-                Ff(i) = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, FLAGxfrac)./Nts;
+                %Fi(i) = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+                Ff(i) = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+               
             case 2 % lsq
                
-                [weight_final(i,:), z1, z2, flag] = lsqnonlin(tfunc, weight_init(i,:), lb, ub, opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
-                %weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass));
+                [weight_final(i,:), z1, z2, flag] = lsqnonlin(tfunc, weight_init(i,:), lb, ub, opt, binned_signal, Iexp, Nts, nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+                weight_final(i, 1:nclass) = weight_final(i, 1:nclass) / sum(weight_final(i, 1:nclass));
                 exfrac_final(i) = weight_final(i, end);
                 if flag < 0 warning('Optimisation Failed'); end;
-                fi = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
-                ff = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype);
+                fi = feval(tfunc, weight_init(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
+                ff = feval(tfunc, weight_final(i,:), binned_signal, Iexp, length(TE), nclass, Nq, CM, FLAGxfrac, FLAGexclude, ex_trajs, FLAG_wtype, mean_weight, weight_lb, weight_ub);
                 Fi(i) = sum(fi(1:numel(fi)).^2);
                 Ff(i) = sum(ff(1:numel(ff)).^2);
                 clear fi ff
+                
+                
         end
+        
 
         disp(['% INIT FUNC VAL: ', num2str(Fi(i))])
         disp(['% OPT FUNC VAL: ', num2str(Ff(i))])
