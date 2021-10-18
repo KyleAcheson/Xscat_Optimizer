@@ -51,9 +51,9 @@ Tf_exp = Texp(Tf_closest); % experimental Tf - end time
 Tlen_exp = ceil(Tf_exp - Tstart_exp);
 
 while Tlen_Th < Tlen_exp  % cut experiment time grid so it is always equal or shorter than theory
-    Tf_closest = Tf_closest - 1
-    Tf_exp = Texp(Tf_closest)
-    Tlen_exp = ceil(Tf_exp - Tstart_exp)
+    Tf_closest = Tf_closest - 1;
+    Tf_exp = Texp(Tf_closest);
+    Tlen_exp = ceil(Tf_exp - Tstart_exp);
 end
    
 tt = length(Tth);

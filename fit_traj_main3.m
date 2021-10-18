@@ -476,8 +476,8 @@ disp(['Time elapsed for ITER   (s):' num2str(telapsed)]);
 disp(['Time elapsed for ITER (min):' num2str(telapsed/60)]);
 disp(['Time elapsed for ITER (hrs):' num2str(telapsed/3600)]);
 
-%save(fout, '-v7.3')
-%disp(['SAVING DATA TO :', fout]);
+save(fout, 'weight_final', 'weight_init', 'exfrac_final', 'Fi', 'Ff', '-v7.3')
+disp(['SAVING DATA TO :', fout]);
 disp(['-------------------- FINISHED SCAN ITER! --------------------']);
 
 

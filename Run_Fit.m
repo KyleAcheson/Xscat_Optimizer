@@ -37,7 +37,7 @@ close all
 % Same goes for the form factors - f_functions.m and f_functions_electron.m
 
 
-diary TEST_WEIGHTS_OPT.diary %EDIT WITH EACH SUBSEQUENT RUN
+diary WEIGHT_STD_SCAN.diary %EDIT WITH EACH SUBSEQUENT RUN
 
 
 %%%%% SETUP FLAGS %%%%% EDIT BEFORE RUNNING
@@ -52,7 +52,7 @@ FLAGtfunc = 0; % 0 - individual trajs, 1 - singlet, triplet, non-diss classes, 2
 FLAGxfrac = 1; % Include xfrac in optimisation, must set to a scalar guess in input
 FLAGconfmat = 1; % Include a confidence matrix that assigns a measure of confidence in the data at each point. 1 = Include, 0 = Exclude.
 FLAGexclude = 0; % 1 = exclude certain number trajectories from opt - specified in ex_traj, 0 = exclude none.
-Npar = 1; % number of processors to run using. 1 = serial execution 
+Npar = 5; % number of processors to run using. 1 = serial execution 
 DEBUG = 0; % 1 for debugging info
 FLAG_T0 = 0; % 0 = perform global fit, 1 = perform independent T0 fit
 FLAG_wtype = 1; % how initial weights are generated. 0 = N random weights on interval [0, 1]
@@ -75,14 +75,14 @@ Tlen = 1000; % max time in fs to fit over
 q_range = [1, 12]; % q range to use for fitting
 qlims = [2.8 4.2]; % limits for integration if fitting T0
 ex_traj = [14 20 36 93 96 98 100 137 176 197]; % trajectory numbers to exclude from opt
-ninit_conds = 10; % number of initial guess conditions for coefficients
-weight_std = [0.2 0.3]; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
+ninit_conds = 100; % number of initial guess conditions for coefficients
+weight_std = [0.1 0.25 0.50 0.75 1 2:1:196]; % std. dev. on average (1/ntraj) weight for sampling in accordance with FLAG_wtype = 1
 
 %%%%% PATHS TO EXPERIMENTAL AND THEORETICAL DATA %%%%% EDIT BEFORE RUNNING
 
-fpath_exp = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/MeV_UED/Experiment/FixedExperimental.mat'; % path to experimental data
-fpath_traj = '/Users/kyleacheson/MATLAB/SCATTERING/ROT_AVG/Xopt_Analysis/Filtered_Trajs_Final.mat'; % path to theory data
-fname = 'OPT_Weights_std'; % Prefix of .mat output file data will be saved to.
+fpath_exp = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/FixedExperimental.mat'; % path to experimental data
+fpath_traj = '/home/kyle/2TB_HDD/OPTDATA/INPUTS/Filtered_Trajs_Final.mat'; % path to theory data
+fname = 'WEIGHT_SCAN/OPT_Weights_std'; % Prefix of .mat output file data will be saved to.
 
 % Edit these two functions to load relevent data
 [Texp, Iexp, q_exp, CM] = load_experiment(fpath_exp, FLAGconfmat); % need experimental time vec, signal and q range
@@ -149,7 +149,7 @@ if FLAG_wtype > 0 && length(weight_std) > 1
                 if wdiff{k} < 0
                     error('No convergence. Weights of previous space give lower value.')
                 elseif wdiff{k} < 1E-5
-                    disp(['Global Minimum Found']);
+                    disp(['******GLOBAL MINIMA POSSIBLE******']);
                 end
                 disp(['--------- END OF OPTIMISATION FOR WEIGHT SPACE ', num2str(k), ' --------------']);
                 disp(['--------- WEIGHT CONVERGENCE BETWEEN ITER ', num2str(k), ' and ITER ', num2str(k-1)]);
@@ -191,5 +191,7 @@ disp(['Time elapsed for TOTAL calculation (s):' num2str(telapsed_total)]);
 disp(['Time elapsed for TOTAL calculation (min):' num2str(telapsed_total/60)]);
 disp(['Time elapsed for TOTAL calculation (hrs):' num2str(telapsed_total/3600)]);
 disp(['-------------------- FINISHED ALL CALCULATIONS! --------------------']);
+
+save('WEIGHT_STD_SCAN_ALL.mat', '-v7.3')
 
 diary off;
